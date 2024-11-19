@@ -25,6 +25,24 @@ type BalanceChanger interface {
 	Withdraw(ctx context.Context, walletUuid uuid.UUID, amount int64) (err error)
 }
 
+// UseWallet returns an HTTP handler that performs either a DEPOSIT or WITHDRAW
+// operation on a wallet. The request body should contain a JSON object with
+// the following structure:
+//
+//	{
+//	  "walletId": "uuid4",
+//	  "operationType": "DEPOSIT" or "WITHDRAW",
+//	  "amount": int64
+//	}
+//
+// The handler first validates the request using the validator library.
+// If the request is invalid, it returns a 400 error with the validation
+// errors.
+//
+// If the request is valid, it performs the requested operation using the
+// provided BalanceChanger. If the operation fails, it returns a 500 error.
+//
+// If the operation succeeds, it returns a 200 OK response.
 func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.wallet.operation.Deposit"

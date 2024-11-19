@@ -8,6 +8,19 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// New returns a middleware that logs every incoming request and its response.
+// The middleware logs the following information:
+// - request method
+// - request path
+// - request user agent
+// - request remote address
+// - request ID
+// - response status
+// - response size
+// - response duration
+//
+// The logger will be given an additional component field with the value
+// "middleware/logger".
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		log = log.With(slog.String("component", "middleware/logger"))

@@ -17,6 +17,14 @@ type Storage struct {
 	db *pgxpool.Pool
 }
 
+// New returns a new Storage backed by the given PostgreSQL connection string.
+//
+// The connection string should be in the following format:
+//
+// postgres://username:password@localhost:5432/database_name
+//
+// If the connection string is invalid, or the database can't be connected to,
+// an error will be returned.
 func New(connString string) (*Storage, error) {
 	const op = "storage.pgsql.New"
 
@@ -29,10 +37,20 @@ func New(connString string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
+// Close closes the Storage, releasing any resources it holds.
+//
+// This should be called when the Storage is no longer needed, to ensure
+// resources are released back to the system.
 func (s *Storage) Close() {
 	s.db.Close()
 }
 
+// Deposit adds the given amount to the balance of the wallet with the given UUID.
+//
+// If no wallet with the given UUID is found, ErrWalletNotFound is returned.
+//
+// If an error occurs while executing the query, an error wrapping the original
+// error is returned.
 func (s *Storage) Deposit(ctx context.Context, walletUuid uuid.UUID, amount int64) error {
 	const op = "storage.pgsql.Deposit"
 
@@ -53,6 +71,13 @@ func (s *Storage) Deposit(ctx context.Context, walletUuid uuid.UUID, amount int6
 	return nil
 }
 
+// Withdraw subtracts the given amount from the balance of the wallet with the
+// given UUID.
+//
+// If no wallet with the given UUID is found, ErrWalletNotFound is returned.
+//
+// If an error occurs while executing the query, an error wrapping the original
+// error is returned.
 func (s *Storage) Withdraw(ctx context.Context, walletUuid uuid.UUID, amount int64) error {
 	const op = "storage.pgsql.Withdraw"
 
@@ -75,6 +100,12 @@ func (s *Storage) Withdraw(ctx context.Context, walletUuid uuid.UUID, amount int
 	return nil
 }
 
+// Balance returns the balance of the wallet with the given UUID.
+//
+// If no wallet with the given UUID is found, ErrWalletNotFound is returned.
+//
+// If an error occurs while executing the query, an error wrapping the original
+// error is returned.
 func (s *Storage) Balance(ctx context.Context, walletUuid uuid.UUID) (balance int64, err error) {
 	const op = "storage.pgsql.Balance"
 
