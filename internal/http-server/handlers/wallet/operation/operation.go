@@ -101,5 +101,10 @@ func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc
 			}
 
 		}
+
+		log.Error("unknown operation type", slog.String("operation_type", req.OperationType))
+
+		render.JSON(w, r, response.Error(err))
+
 	}
 }

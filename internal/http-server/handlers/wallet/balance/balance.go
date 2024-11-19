@@ -18,6 +18,7 @@ type Response struct {
 	Error   string `json:"error,omitempty"`
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.47.0 --name=BalanceShower
 type BalanceShower interface {
 	Balance(ctx context.Context, walletUuid uuid.UUID) (balance int64, err error)
 }

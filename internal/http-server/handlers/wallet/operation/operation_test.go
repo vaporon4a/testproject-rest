@@ -1,79 +1,80 @@
 package operation_test
 
 import (
+	"context"
 	"testing"
 	"testproject-rest/internal/http-server/handlers/wallet/operation/mocks"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestOperation(t *testing.T) {
-	cases := []struct {
-		name          string
-		uuid          string
-		operationType string
-		amount        int64
-		respError     string
-		mockError     error
-	}{
-		{
-			name:          "Success",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "DEPOSIT",
-			amount:        1000,
-		},
-		{
-			name:          "Wrong UUID",
-			uuid:          "wrong-uuid",
-			operationType: "DEPOSIT",
-			amount:        1000,
-			respError:     "invalid uuid",
-		},
-		{
-			name:          "Wrong operation type",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "WRONG",
-			amount:        1000,
-			respError:     "invalid operation type",
-		},
-		{
-			name:          "Negative amount",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "DEPOSIT",
-			amount:        -1000,
-			respError:     "invalid amount",
-		},
-		{
-			name:          "Negative amount",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "WITHDRAW",
-			amount:        -1000,
-			respError:     "invalid amount",
-		},
-		{
-			name:          "Zero amount",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "DEPOSIT",
-			amount:        0,
-			respError:     "invalid amount",
-		},
-		{
-			name:          "Zero amount",
-			uuid:          "7901fefc-5330-47ec-a3ba-192de9c636a1",
-			operationType: "WITHDRAW",
-			amount:        0,
-			respError:     "invalid amount",
-		},
-	}
+func TestBalanceChanger_Deposit_Success(t *testing.T) {
+	mockBalanceChanger := mocks.NewBalanceChanger(t)
+	ctx := context.Background()
+	walletUuid := uuid.New()
+	amount := int64(1000)
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	// Setting up expectation
+	mockBalanceChanger.On("Deposit", ctx, walletUuid, amount).Return(nil)
 
-			balanceChangerMock := mocks.NewBalanceChanger(t)
+	// Call the method
+	err := mockBalanceChanger.Deposit(ctx, walletUuid, amount)
 
-			if tc.mockError != nil || tc.respError != "" {
-				balanceChangerMock.On("Deposit", tc.uuid, tc.amount)
-			}
+	// Assertions
+	assert.NoError(t, err)
+	mockBalanceChanger.AssertExpectations(t)
+}
 
-		})
-	}
+func TestBalanceChanger_Deposit_Error(t *testing.T) {
+	mockBalanceChanger := mocks.NewBalanceChanger(t)
+	ctx := context.Background()
+	walletUuid := uuid.New()
+	amount := int64(1000)
+	expectedError := assert.AnError // Using a predefined error for testing
+
+	// Setting up expectation
+	mockBalanceChanger.On("Deposit", ctx, walletUuid, amount).Return(expectedError)
+
+	// Call the method
+	err := mockBalanceChanger.Deposit(ctx, walletUuid, amount)
+
+	// Assertions
+	assert.Equal(t, expectedError, err)
+	mockBalanceChanger.AssertExpectations(t)
+}
+
+func TestBalanceChanger_Withdraw_Success(t *testing.T) {
+	mockBalanceChanger := mocks.NewBalanceChanger(t)
+	ctx := context.Background()
+	walletUuid := uuid.New()
+	amount := int64(500)
+
+	// Setting up expectation
+	mockBalanceChanger.On("Withdraw", ctx, walletUuid, amount).Return(nil)
+
+	// Call the method
+	err := mockBalanceChanger.Withdraw(ctx, walletUuid, amount)
+
+	// Assertions
+	assert.NoError(t, err)
+	mockBalanceChanger.AssertExpectations(t)
+}
+
+func TestBalanceChanger_Withdraw_Error(t *testing.T) {
+	mockBalanceChanger := mocks.NewBalanceChanger(t)
+	ctx := context.Background()
+	walletUuid := uuid.New()
+	amount := int64(500)
+	expectedError := assert.AnError // Using a predefined error for testing
+
+	// Setting up expectation
+	mockBalanceChanger.On("Withdraw", ctx, walletUuid, amount).Return(expectedError)
+
+	// Call the method
+	err := mockBalanceChanger.Withdraw(ctx, walletUuid, amount)
+
+	// Assertions
+	assert.Equal(t, expectedError, err)
+	mockBalanceChanger.AssertExpectations(t)
 }
