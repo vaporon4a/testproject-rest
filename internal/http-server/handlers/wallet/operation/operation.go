@@ -44,7 +44,7 @@ func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc
 			return
 		}
 
-		log.Info("request received", slog.Any("request", req))
+		log.Debug("request received", slog.Any("request", req))
 
 		if err := validator.New().Struct(req); err != nil {
 			log.Error("failed to validate request", slhelper.Err(err))
