@@ -14,9 +14,9 @@ import (
 )
 
 type Request struct {
-	WalletUuid    uuid.UUID `json:"walletId" validate:"required,uuid4"`
+	WalletId      uuid.UUID `json:"walletId" validate:"required,uuid4"`
 	OperationType string    `json:"operationType" validate:"required,oneof=DEPOSIT WITHDRAW"`
-	Amount        int64     `json:"amount" validate:"required,gte=0"`
+	Amount        int64     `json:"amount,string" validate:"required,gte=0"`
 }
 
 //go:generate go run github.com/vektra/mockery/v2@v2.47.0 --name=BalanceChanger
@@ -56,28 +56,28 @@ func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc
 			return
 		}
 		if req.OperationType == "WITHDRAW" {
-			if err := balanceChanger.Withdraw(r.Context(), req.WalletUuid, req.Amount); err != nil {
+			if err := balanceChanger.Withdraw(r.Context(), req.WalletId, req.Amount); err != nil {
 				log.Error("failed to withdraw", slhelper.Err(err))
 
 				render.JSON(w, r, response.Error(err))
 
 				return
 			} else {
-				log.Info("withdraw success", slog.Any("wallet", req.WalletUuid))
+				log.Info("withdraw success", slog.Any("wallet", req.WalletId))
 
 				render.JSON(w, r, response.Success())
 			}
 
 		}
 		if req.OperationType == "DEPOSIT" {
-			if err := balanceChanger.Deposit(r.Context(), req.WalletUuid, req.Amount); err != nil {
+			if err := balanceChanger.Deposit(r.Context(), req.WalletId, req.Amount); err != nil {
 				log.Error("failed to deposit", slhelper.Err(err))
 
 				render.JSON(w, r, response.Error(err))
 
 				return
 			} else {
-				log.Info("deposit success", slog.Any("wallet", req.WalletUuid))
+				log.Info("deposit success", slog.Any("wallet", req.WalletId))
 
 				render.JSON(w, r, response.Success())
 			}

@@ -39,6 +39,7 @@ func main() {
 		log.Error("failed to init storage", slhelper.Err(err))
 		os.Exit(1)
 	}
+	defer storage.Close()
 
 	router := chi.NewRouter()
 

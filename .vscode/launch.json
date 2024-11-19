@@ -12,8 +12,8 @@
 			"program": "${fileDirname}",
 			"env": {
 				"ENVIRONMENT": "local",
-				"PG_HOST": "postgres",
-				"PG_PORT": "5432",
+				"POSTGRES_HOST": "localhost",
+				"POSTGRES_PORT": "5432",
                 "API_HOST": "localhost:8080",
 				"API_TIMEOUT": "50s",
 				"API_IDLE_TIMEOUT": "60s"

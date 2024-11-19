@@ -60,10 +60,10 @@ func MustLoad() *Config {
 		cfg.PostgresPass = "postgres"
 	}
 	if cfg.PostgresDBName == "" {
-		cfg.PostgresDBName = "rest"
+		cfg.PostgresDBName = "postgres"
 	}
 	if cfg.ApiAddres == "" {
-		cfg.ApiAddres = "localhost:8080"
+		cfg.ApiAddres = "0.0.0.0:8080"
 	}
 	if cfg.ApiTimeout == 0 {
 		cfg.ApiTimeout = time.Second * 5
