@@ -1,0 +1,11 @@
+{
+    "go.testEnvVars": {
+        "ENVIRONMENT": "local",
+		"POSTGRES_HOST": "localhost",
+		"POSTGRES_PORT": "5432",
+        "API_HOST": "localhost:8080",
+		"API_TIMEOUT": "50s",
+		"API_IDLE_TIMEOUT": "60s",
+    },
+    "go.testFlags": ["-v"]
+}

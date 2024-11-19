@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"testproject-rest/internal/config"
 	"testproject-rest/internal/http-server/handlers/wallet/balance"
 	"testproject-rest/internal/http-server/handlers/wallet/operation"
 	midlogger "testproject-rest/internal/http-server/middleware/logger"
 	"testproject-rest/internal/lib/logger/slhelper"
 	"testproject-rest/internal/storage/pgsql"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -61,12 +66,33 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.ApiIdleTimeout,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server", slhelper.Err(err))
-		os.Exit(1)
+	shutdownChan := make(chan bool, 1)
+
+	go func() {
+		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to start server", slhelper.Err(err))
+		}
+
+		// simulate time to close connections
+		time.Sleep(1 * time.Millisecond)
+
+		log.Info("server shutdown")
+		shutdownChan <- true
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownRelease()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Error("failed to shutdown server", slhelper.Err(err))
 	}
 
-	log.Error("server stopped")
+	<-shutdownChan
+	log.Info("server stopped")
 }
 
 func initLogger(env string) *slog.Logger {

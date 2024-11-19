@@ -36,6 +36,7 @@ func ShowBalance(log *slog.Logger, balanceShower BalanceShower) http.HandlerFunc
 		if err != nil {
 			log.Error("failed to parse wallet uuid", slhelper.Err(err))
 
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error(err))
 
 			return
@@ -43,6 +44,11 @@ func ShowBalance(log *slog.Logger, balanceShower BalanceShower) http.HandlerFunc
 
 		balance, err := balanceShower.Balance(r.Context(), walletUuid)
 		if err != nil {
+			if err.Error() == "storage.pgsql.Balance: wallet not found" {
+				render.Status(r, http.StatusNotFound)
+			} else {
+				render.Status(r, http.StatusInternalServerError)
+			}
 			log.Error("failed to get balance", slhelper.Err(err))
 
 			render.JSON(w, r, response.Error(err))

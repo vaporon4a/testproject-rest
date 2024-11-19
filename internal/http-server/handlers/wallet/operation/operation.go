@@ -2,8 +2,10 @@ package operation
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"testproject-rest/internal/lib/logger/slhelper"
 	"testproject-rest/internal/lib/rest/response"
 
@@ -25,27 +27,9 @@ type BalanceChanger interface {
 	Withdraw(ctx context.Context, walletUuid uuid.UUID, amount int64) (err error)
 }
 
-// UseWallet returns an HTTP handler that performs either a DEPOSIT or WITHDRAW
-// operation on a wallet. The request body should contain a JSON object with
-// the following structure:
-//
-//	{
-//	  "walletId": "uuid4",
-//	  "operationType": "DEPOSIT" or "WITHDRAW",
-//	  "amount": int64
-//	}
-//
-// The handler first validates the request using the validator library.
-// If the request is invalid, it returns a 400 error with the validation
-// errors.
-//
-// If the request is valid, it performs the requested operation using the
-// provided BalanceChanger. If the operation fails, it returns a 500 error.
-//
-// If the operation succeeds, it returns a 200 OK response.
 func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.wallet.operation.Deposit"
+		const op = "handlers.wallet.operation.UseWallet"
 
 		log = log.With(
 			slog.String("op", op),
@@ -53,58 +37,47 @@ func UseWallet(log *slog.Logger, balanceChanger BalanceChanger) http.HandlerFunc
 		)
 
 		var req Request
-		err := render.DecodeJSON(r.Body, &req)
-		if err != nil {
+		if err := render.DecodeJSON(r.Body, &req); err != nil {
 			log.Error("failed to decode request", slhelper.Err(err))
-
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error(err))
-
 			return
 		}
 
 		log.Info("request received", slog.Any("request", req))
 
 		if err := validator.New().Struct(req); err != nil {
-			validateErr := err.(validator.ValidationErrors)
-
 			log.Error("failed to validate request", slhelper.Err(err))
-
-			render.JSON(w, r, response.ValidationError(validateErr))
-
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ValidationError(err.(validator.ValidationErrors)))
 			return
 		}
-		if req.OperationType == "WITHDRAW" {
-			if err := balanceChanger.Withdraw(r.Context(), req.WalletId, req.Amount); err != nil {
-				log.Error("failed to withdraw", slhelper.Err(err))
 
-				render.JSON(w, r, response.Error(err))
-
-				return
-			} else {
-				log.Info("withdraw success", slog.Any("wallet", req.WalletId))
-
-				render.JSON(w, r, response.Success())
-			}
-
-		}
-		if req.OperationType == "DEPOSIT" {
-			if err := balanceChanger.Deposit(r.Context(), req.WalletId, req.Amount); err != nil {
-				log.Error("failed to deposit", slhelper.Err(err))
-
-				render.JSON(w, r, response.Error(err))
-
-				return
-			} else {
-				log.Info("deposit success", slog.Any("wallet", req.WalletId))
-
-				render.JSON(w, r, response.Success())
-			}
-
+		var actionErr error
+		switch req.OperationType {
+		case "WITHDRAW":
+			actionErr = balanceChanger.Withdraw(r.Context(), req.WalletId, req.Amount)
+		case "DEPOSIT":
+			actionErr = balanceChanger.Deposit(r.Context(), req.WalletId, req.Amount)
+		default:
+			log.Error("unknown operation type", slog.String("operation_type", req.OperationType))
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(fmt.Errorf("unknown operation type: %s", req.OperationType)))
+			return
 		}
 
-		log.Error("unknown operation type", slog.String("operation_type", req.OperationType))
+		if actionErr != nil {
+			if strings.Contains(actionErr.Error(), "wallet not found") {
+				render.Status(r, http.StatusNotFound)
+			} else {
+				render.Status(r, http.StatusInternalServerError)
+			}
+			log.Error("operation failed", slhelper.Err(actionErr))
+			render.JSON(w, r, response.Error(actionErr))
+			return
+		}
 
-		render.JSON(w, r, response.Error(err))
-
+		log.Info("operation success", slog.String("operation_type", req.OperationType), slog.Any("wallet", req.WalletId))
+		render.JSON(w, r, response.Success())
 	}
 }

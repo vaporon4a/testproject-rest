@@ -65,7 +65,7 @@ func (s *Storage) Deposit(ctx context.Context, walletUuid uuid.UUID, amount int6
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if c.RowsAffected() == 0 {
-		return ErrWalletNotFound
+		return fmt.Errorf("%s: %w", op, ErrWalletNotFound)
 	}
 
 	return nil
@@ -94,7 +94,7 @@ func (s *Storage) Withdraw(ctx context.Context, walletUuid uuid.UUID, amount int
 	}
 
 	if c.RowsAffected() == 0 {
-		return ErrWalletNotFound
+		return fmt.Errorf("%s: %w", op, ErrWalletNotFound)
 	}
 
 	return nil
